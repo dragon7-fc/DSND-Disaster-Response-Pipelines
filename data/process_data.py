@@ -5,9 +5,12 @@ from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
     """load_data
+    load messages and categories csv file and merge to a datafram.
 
-    :param messages_filepath:
-    :param categories_filepath:
+    :param messages_filepath: The messages.csv file
+    :param categories_filepath: The categories.csv file
+
+    :returns: A dataframe
     """
     # Load datasets.
     messages = pd.read_csv(messages_filepath)
@@ -20,8 +23,11 @@ def load_data(messages_filepath, categories_filepath):
 
 def clean_data(df):
     """clean_data
+    Create a One-Hot encoding dataframe with no duplicates.
 
-    :param df:
+    :param df: The pure dataframe
+
+    :returns: A One-Hot encoding dataframe
     """
     # Split categories into separate category columns.
     categories = df['categories'].str.split(pat=';', expand=True)
@@ -49,9 +55,10 @@ def clean_data(df):
 
 def save_data(df, database_filename):
     """save_data
+    Save the df dataframe to a database_filename file.
 
-    :param df:
-    :param database_filename:
+    :param df: The dataframe
+    :param database_filename: A SQLite database_filename file
     """
     engine = create_engine('sqlite:///' + database_filename)
     df.to_sql('disaster', engine, if_exists='replace', index=False)

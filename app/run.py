@@ -45,50 +45,40 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
 
+    category_counts = df[df.columns[4:]].sum()
+    category_counts = category_counts.sort_values(ascending=False)
+    category_names = list(category_counts.index)
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
-    graphs = [
-        {
-            'data': [
-                Bar(
-                    x=genre_names,
-                    y=genre_counts,
-                    marker={
-                        'color': ['orange', 'blue', 'green'],
-                    }
-                )
-            ],
-
-            'layout': {
-                'title': 'Distribution of Message Genres',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Genre"
-                }
-            }
-        },
-        {
-            'data': [
-                {
-                    "values": genre_counts,
-                    "labels": genre_names,
-                    "name": "Genre",
-                    "hoverinfo": "label+percent+name",
-                    "marker": {
-                        'color': ['orange', 'blue', 'green'],
-                    },
-                    "type": "pie"
-                }
-
-
-            ],
-            'layout': {
-                'title': 'Distribution of Message Genres with a Pie Chart',
-            }
-        }
-    ]
+    graphs = [{'data': [Bar(x=genre_names,
+                            y=genre_counts,
+                            )],
+               'layout': {'title': 'Distribution of Message Genres',
+                          'yaxis': {'title': "Count"},
+                          'xaxis': {'title': "Genre"}}},
+              {'data': [{"values": genre_counts,
+                         "labels": genre_names,
+                         "name": "Genre",
+                         "hoverinfo": "label+percent+name",
+                         "type": "pie"}],
+               'layout': {}},
+              {'data': [Bar(x=category_names,
+                            y=category_counts)],
+               'layout': {'title': 'Distribution of Message Categories',
+                          'yaxis': {'title': "Count",
+                                    'automargin': True},
+                          'xaxis': {'title': "Category",
+                                    'tickangle': -40,
+                                    'automargin': True
+                                    }}},
+              {'data': [{"values": category_counts,
+                         "labels": category_names,
+                         "name": "Genre",
+                         "hoverinfo": "label+percent+name",
+                         "type": "pie"}],
+               'layout': {}},
+              ]
 
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]

@@ -20,8 +20,11 @@ import pickle
 
 def load_data(database_filepath):
     """load_data
+    Load the database_filepath file and extract X, Y and category_names.
 
-    :param database_filepath:
+    :param database_filepath: The SQLite database_filepath file
+
+    :returns: X, Y, category_names
     """
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql_table('disaster', con=engine)
@@ -34,18 +37,26 @@ def load_data(database_filepath):
 
 def tokenize(text):
     """tokenize
+    Perform text normalization.
 
-    :param text:
+    :param text: pure text
+
+    :returns: tokens
     """
     url_regex = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
 
+    # replace each url in text string with urlplaceholder
     detected_urls = re.findall(url_regex, text)
     for url in detected_urls:
         text = text.replace(url, "urlplaceholder")
 
+    # tokenize text
     tokens = word_tokenize(text)
+
+    # initiate lemmatizer
     lemmatizer = WordNetLemmatizer()
 
+    # iterate through each token
     clean_tokens = []
     for tok in tokens:
         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
@@ -56,25 +67,36 @@ def tokenize(text):
 
 def build_model():
     """build_model"""
-    pipeline = Pipeline([
-        ('text_pipeline', Pipeline([
-            ('vect', CountVectorizer(tokenizer=tokenize)),
-            ('tfidf', TfidfTransformer())
-        ])),
-        ('clf', MultiOutputClassifier(OneVsRestClassifier(
-            LinearSVC(random_state=0, tol=1e-2, C=.5))))
-    ])
+    pipeline = Pipeline(
+        [('text_pipeline',
+          Pipeline(
+              [('vect', CountVectorizer(tokenizer=tokenize)),
+               ('tfidf', TfidfTransformer())])),
+         ('clf',
+          MultiOutputClassifier(
+              OneVsRestClassifier(LinearSVC(random_state=0))))])
 
-    return pipeline
+    parameters = {
+            'clf__estimator__estimator__tol': [1e-2, 1e-4],
+            'clf__estimator__estimator__C': [.5, 1, 2],
+
+            }
+
+    cv = GridSearchCV(
+            estimator=pipeline,
+            param_grid=parameters)
+
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
     """evaluate_model
+    Print the f1_score, precision and recall of the model.
 
-    :param model:
-    :param X_test:
-    :param Y_test:
-    :param category_names:
+    :param model: The model
+    :param X_test: The X values of test sample
+    :param Y_test: The Y values of test sample
+    :param category_names: The Y_test category name
     """
     Y_pred = model.predict(X_test)
 
@@ -101,9 +123,10 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 def save_model(model, model_filepath):
     """save_model
+    Save model to model_filepath file.
 
-    :param model:
-    :param model_filepath:
+    :param model: The model
+    :param model_filepath: A model_filepath pickle file.
     """
     pickle.dump(model, open(model_filepath, 'wb'))
 
