@@ -3,6 +3,7 @@
 [//]: # (Image References)
 
 [image1]: ./imgs/demo.png "demo"
+[image2]: ./imgs/demo2.png "demo2"
 
 ### Table of Contents
 
@@ -63,4 +64,6 @@ Your project will include a web app where an emergency worker can input a new me
 ### Results <a name="results"></a>:
 
 ![alt text][image1]
+
+![alt text][image2]
 
