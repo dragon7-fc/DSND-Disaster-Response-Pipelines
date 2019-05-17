@@ -3,6 +3,7 @@ import re
 import sqlite3
 import pandas as pd
 from sqlalchemy import create_engine
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from sklearn.model_selection import train_test_split
@@ -52,6 +53,12 @@ def tokenize(text):
 
     # tokenize text
     tokens = word_tokenize(text)
+
+    STOPWORDS = list(set(stopwords.words('english')))
+    # remove short words
+    tokens = [token for token in tokens if len(tokens) > 2]
+    # remove stopwords
+    tokens = [token for token in tokens if token not in STOPWORDS]
 
     # initiate lemmatizer
     lemmatizer = WordNetLemmatizer()
