@@ -35,7 +35,6 @@ def load_data(database_filepath):
 
     return X, Y, category_names
 
-
 def tokenize(text):
     """tokenize
     Perform text normalization.
@@ -49,14 +48,18 @@ def tokenize(text):
     # replace each url in text string with urlplaceholder
     detected_urls = re.findall(url_regex, text)
     for url in detected_urls:
-        text = text.replace(url, "urlplaceholder")
+        text = text.replace(url, " ")
+
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
 
     # tokenize text
     tokens = word_tokenize(text)
 
     STOPWORDS = list(set(stopwords.words('english')))
+
     # remove short words
-    tokens = [token for token in tokens if len(tokens) > 2]
+    tokens = [token for token in tokens if len(token) > 2]
+
     # remove stopwords
     tokens = [token for token in tokens if token not in STOPWORDS]
 
@@ -66,7 +69,7 @@ def tokenize(text):
     # iterate through each token
     clean_tokens = []
     for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tok = lemmatizer.lemmatize(tok).strip()
         clean_tokens.append(clean_tok)
 
     return clean_tokens

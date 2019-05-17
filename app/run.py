@@ -1,9 +1,13 @@
 import json
 import plotly
+import numpy as np
 import pandas as pd
+import re
+import os
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 from flask import Flask
 from flask import render_template, request, jsonify
@@ -11,17 +15,46 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
+from collections import Counter
 
 app = Flask(__name__)
 
 
 def tokenize(text):
+    """tokenize
+    Perform text normalization.
+
+    :param text: pure text
+
+    :returns: tokens
+    """
+    url_regex = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+
+    # replace each url in text string with urlplaceholder
+    detected_urls = re.findall(url_regex, text)
+    for url in detected_urls:
+        text = text.replace(url, " ")
+
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
+
+    # tokenize text
     tokens = word_tokenize(text)
+
+    STOPWORDS = list(set(stopwords.words('english')))
+
+    # remove short words
+    tokens = [token for token in tokens if len(token) > 2]
+
+    # remove stopwords
+    tokens = [token for token in tokens if token not in STOPWORDS]
+
+    # initiate lemmatizer
     lemmatizer = WordNetLemmatizer()
 
+    # iterate through each token
     clean_tokens = []
     for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tok = lemmatizer.lemmatize(tok).strip()
         clean_tokens.append(clean_tok)
 
     return clean_tokens
@@ -33,6 +66,39 @@ df = pd.read_sql_table('disaster', engine)
 
 # load model
 model = joblib.load("../models/classifier.pkl")
+
+
+def compute_word_counts(messages, load=True, filepath='../data/counts.npz'):
+    '''
+    input: (
+        messages: list or numpy array
+        load: Boolean value if load or run model
+        filepath: filepath to save or load data
+            )
+    Function computes the top 20 words in the dataset with counts of each term
+    output: (
+        top_words: list
+        top_counts: list
+            )
+    '''
+    if load:
+        # load arrays
+        data = np.load(filepath)
+        return list(data['top_words']), list(data['top_counts'])
+    else:
+        # get top words
+        counter = Counter()
+        for message in messages:
+            tokens = tokenize(message)
+            for token in tokens:
+                counter[token] += 1
+        # top 20 words
+        top = counter.most_common(20)
+        top_words = [word[0] for word in top]
+        top_counts = [count[1] for count in top]
+        # save arrays
+        np.savez(filepath, top_words=top_words, top_counts=top_counts)
+        return list(top_words), list(top_counts)
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -48,6 +114,13 @@ def index():
     category_counts = df[df.columns[4:]].sum()
     category_counts = category_counts.sort_values(ascending=False)
     category_names = list(category_counts.index)
+
+    messages = df['message'].tolist()
+
+    if not os.path.isfile('../data/counts.npz'):
+        top_words, top_counts = compute_word_counts(messages, load=False)
+    else:
+        top_words, top_counts = compute_word_counts(None, load=True)
 
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -69,7 +142,7 @@ def index():
                           'yaxis': {'title': "Count",
                                     'automargin': True},
                           'xaxis': {'title': "Category",
-                                    'tickangle': -40,
+                                    'tickangle': -30,
                                     'automargin': True
                                     }}},
               {'data': [{"values": category_counts,
@@ -78,6 +151,15 @@ def index():
                          "hoverinfo": "label+percent+name",
                          "type": "pie"}],
                'layout': {}},
+              {'data': [Bar(x=top_words,
+                            y=top_counts)],
+               'layout': {'title': 'Distribution of Top 20 Words',
+                          'yaxis': {'title': "Count",
+                                    'automargin': True},
+                          'xaxis': {'title': "Words",
+                                    'tickangle': -30,
+                                    'automargin': True
+                                    }}},
               ]
 
     # encode plotly graphs in JSON
